@@ -1,0 +1,71 @@
+name: Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Issue Triage
+        id: claude-triage
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            ISSUE NUMBER: ${{ github.event.issue.number }}
+            TITLE: ${{ github.event.issue.title }}
+            BODY:
+            ${{ github.event.issue.body }}
+            AUTOR: ${{ github.event.issue.user.login }}
+
+            Eres un asistente de triage de issues para este repositorio, un juego de
+            Tetris hecho en JavaScript vanilla sin dependencias ni build (index.html,
+            style.css, game.js).
+
+            Analiza el issue de arriba y haz lo siguiente:
+
+            1. Clasifícalo: bug, mejora (enhancement), pregunta (question), o
+               documentación (documentation).
+            2. Busca posibles duplicados con `gh issue list` o `gh search issues`.
+            3. Asigna los labels apropiados con:
+               `gh issue edit ${{ github.event.issue.number }} --add-label "..."`
+               Usa ÚNICAMENTE labels que ya existan en el repo (puedes listarlos con
+               `gh label list`): bug, documentation, duplicate, enhancement,
+               good first issue, help wanted, invalid, question, wontfix.
+               No crees labels nuevos.
+            4. Publica UN comentario en el issue con:
+               `gh issue comment ${{ github.event.issue.number }} --body "..."`
+               que contenga un diagnóstico general en español, con esta estructura:
+               - **Resumen**: de qué trata el issue en una o dos frases.
+               - **Archivos probablemente involucrados**: cuáles de index.html,
+                 style.css o game.js (y qué función/sección si es identificable)
+                 hay que tocar.
+               - **Causa probable**: hipótesis del problema o de lo que falta,
+                 si es identificable a partir de la descripción.
+               - **Próximos pasos sugeridos**: pasos concretos para implementar la
+                 solución más adelante.
+               Si detectaste un posible duplicado, menciónalo también en el
+               comentario, referenciando el número del issue original.
+
+            Importante:
+            - NO edites el título ni el cuerpo del issue (solo labels y un
+              comentario), para no volver a disparar este mismo workflow.
+            - NO implementes ningún cambio de código en este paso; solo
+              diagnostica y etiqueta. La implementación se hace después, cuando
+              alguien lo pida explícitamente mencionando @claude.
+            - Escribe el comentario en español.
+
+          claude_args: |
+            --allowedTools "Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh issue view:*),Bash(gh issue list:*),Bash(gh search:*),Bash(gh label list:*)"
