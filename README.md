@@ -184,3 +184,5 @@ Algunos parámetros fáciles de tunear en `game.js`:
 ## Licencia
 
 Proyecto de uso libre con fines educativos y de práctica.
+ing.juniorarosario@gmail.com
+ing.juniorarosario@gmail.com
